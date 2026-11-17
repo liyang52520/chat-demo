@@ -18,38 +18,34 @@
     <style>
       :root {
         --bg: #ffffff;
-        --surface: #ffffff;
+        --fill: #f6f7f8;
+        --fill-border: #e4e5e8;
         --label-primary: #0f1115;
         --label-tertiary: #81858c;
         --label-caption: #adb2b8;
-        --border-l2: rgba(0, 0, 0, 0.1);
-        --border-l3: rgba(0, 0, 0, 0.16);
         --brand: #3964fe;
         --brand-hover: #5686fe;
         --brand-ring: rgba(57, 100, 254, 0.14);
         --danger: #ec1313;
-        --danger-ring: rgba(236, 19, 19, 0.12);
-        --shadow-input:
-          0 4px 10px rgba(0, 0, 0, 0.02),
-          0 2px 4px rgba(0, 0, 0, 0.04);
+        --disabled-bg: #eceef1;
+        --disabled-text: #81858c;
         --ease: cubic-bezier(0.4, 0, 0.2, 1);
         color-scheme: light;
       }
 
       html[data-theme='dark'] {
         --bg: #151517;
-        --surface: #2c2c2e;
+        --fill: rgba(255, 255, 255, 0.06);
+        --fill-border: rgba(255, 255, 255, 0.14);
         --label-primary: #f9fafb;
         --label-tertiary: #adb2b8;
         --label-caption: #81858c;
-        --border-l2: rgba(255, 255, 255, 0.12);
-        --border-l3: rgba(255, 255, 255, 0.2);
         --brand: #5686fe;
         --brand-hover: #3964fe;
         --brand-ring: rgba(86, 134, 254, 0.22);
         --danger: #f25a5a;
-        --danger-ring: rgba(242, 90, 90, 0.16);
-        --shadow-input: none;
+        --disabled-bg: rgba(255, 255, 255, 0.08);
+        --disabled-text: #6f7377;
         color-scheme: dark;
       }
 
@@ -86,65 +82,60 @@
         max-width: 360px;
         margin: auto;
         padding: 48px 24px;
+        animation: page-in 0.36s var(--ease) both;
+      }
+
+      @keyframes page-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .page {
+          animation: none;
+        }
       }
 
       .brand {
         display: flex;
         justify-content: center;
-        margin-bottom: 32px;
+        margin-bottom: 36px;
       }
 
       .brand svg {
         display: block;
         width: auto;
-        height: 24px;
+        height: 26px;
       }
 
       .brand svg path {
         fill: var(--brand);
       }
 
-      .title {
-        margin: 0 0 8px;
-        font-size: 24px;
-        line-height: 32px;
-        font-weight: 600;
-        text-align: center;
-        color: var(--label-primary);
-      }
-
-      .subtitle {
-        margin: 0 0 28px;
-        font-size: 14px;
-        line-height: 22px;
-        text-align: center;
-        color: var(--label-tertiary);
-      }
-
       .field {
         display: flex;
         align-items: center;
-        height: 48px;
-        padding: 0 18px;
-        margin-bottom: 12px;
-        border: 1px solid var(--border-l2);
-        border-radius: 24px;
-        background-color: var(--surface);
-        box-shadow: var(--shadow-input);
-        transition:
-          border-color 0.2s var(--ease),
-          box-shadow 0.2s var(--ease),
-          background-color 0.2s var(--ease);
+        height: 44px;
+        padding: 0 20px;
+        margin-bottom: 10px;
+        border: 1px solid var(--fill-border);
+        border-radius: 4096px;
+        background-color: var(--fill);
+        transition: border-color 0.2s var(--ease);
       }
 
       .field:focus-within {
-        border-color: var(--border-l3);
-        box-shadow: 0 0 0 3px var(--brand-ring);
+        border-color: var(--brand);
       }
 
       .field.invalid {
         border-color: var(--danger);
-        box-shadow: 0 0 0 3px var(--danger-ring);
       }
 
       .field input {
@@ -165,17 +156,27 @@
         color: var(--label-caption);
       }
 
-      .error {
-        min-height: 20px;
-        margin: 8px 2px 12px;
-        font-size: 12px;
+      .hint {
+        margin: 12px 0 0;
+        font-size: 13px;
         line-height: 20px;
+        text-align: center;
+        color: var(--label-tertiary);
+      }
+
+      .error {
+        min-height: 18px;
+        margin: 6px 0 0;
+        font-size: 12px;
+        line-height: 18px;
+        text-align: center;
         color: var(--danger);
       }
 
       .submit {
         width: 100%;
         height: 40px;
+        margin-top: 6px;
         padding: 0 16px;
         border: none;
         border-radius: 4096px;
@@ -188,7 +189,7 @@
         cursor: pointer;
         transition:
           background-color 0.2s var(--ease),
-          opacity 0.2s var(--ease);
+          color 0.2s var(--ease);
       }
 
       .submit:hover:not(:disabled) {
@@ -196,7 +197,8 @@
       }
 
       .submit:disabled {
-        opacity: 0.45;
+        background-color: var(--disabled-bg);
+        color: var(--disabled-text);
         cursor: not-allowed;
       }
 
@@ -211,20 +213,11 @@
         }
 
         .brand {
-          margin-bottom: 28px;
+          margin-bottom: 32px;
         }
 
         .brand svg {
           height: 22px;
-        }
-
-        .title {
-          font-size: 22px;
-          line-height: 30px;
-        }
-
-        .subtitle {
-          margin-bottom: 24px;
         }
       }
     </style>
@@ -233,8 +226,6 @@
     <main class="page">
       <div class="brand" aria-hidden="true"><!--WORDMARK--></div>
       <div id="panel" hidden>
-        <h1 class="title" id="title">登录</h1>
-        <p class="subtitle" id="subtitle">请输入访问密码以继续</p>
         <form id="form" novalidate>
           <div class="field" id="passwordField">
             <input
@@ -256,6 +247,7 @@
               aria-label="请再次输入密码"
             />
           </div>
+          <p class="hint" id="hint">请输入访问密码以继续</p>
           <div class="error" id="error" role="alert"></div>
           <button class="submit" id="submit" type="submit" disabled>登录</button>
         </form>
@@ -265,12 +257,10 @@
       const messages = {
         'zh-CN': {
           documentTitle: '登录',
-          title: '登录',
           subtitle: '请输入访问密码以继续',
           password: '请输入密码',
           confirm: '请再次输入密码',
           button: '登录',
-          setupTitle: '设置访问密码',
           setupSubtitle: '首次使用，请设置访问密码',
           setupButton: '进入系统',
           mismatch: '两次输入的密码不一致',
@@ -282,12 +272,10 @@
         },
         'en-US': {
           documentTitle: 'Sign in',
-          title: 'Sign in',
           subtitle: 'Enter the access password to continue',
           password: 'Enter password',
           confirm: 'Confirm password',
           button: 'Sign in',
-          setupTitle: 'Set an access password',
           setupSubtitle: 'First time here — create an access password',
           setupButton: 'Continue',
           mismatch: 'Passwords do not match',
@@ -309,8 +297,7 @@
 
       const panel = document.getElementById('panel')
       const form = document.getElementById('form')
-      const title = document.getElementById('title')
-      const subtitle = document.getElementById('subtitle')
+      const hint = document.getElementById('hint')
       const passwordField = document.getElementById('passwordField')
       const confirmField = document.getElementById('confirmField')
       const password = document.getElementById('password')
@@ -338,8 +325,7 @@
       const applyMode = () => {
         document.documentElement.lang = text === messages['zh-CN'] ? 'zh-CN' : 'en-US'
         document.title = text.documentTitle
-        title.textContent = configured ? text.title : text.setupTitle
-        subtitle.textContent = configured ? text.subtitle : text.setupSubtitle
+        hint.textContent = configured ? text.subtitle : text.setupSubtitle
         confirmField.hidden = configured
         password.placeholder = text.password
         password.setAttribute('aria-label', text.password)
