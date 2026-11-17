@@ -15,6 +15,7 @@ import {
   prepareDraftMessage,
 } from './drafts.js'
 import { createLatestReminder } from './latestReminder.js'
+import { migrateLegacyHistory } from './migrate.js'
 import {
   applyEvent,
   canContinueReply,
@@ -299,7 +300,12 @@ export const initChat = (): Promise<void> => {
   set({ initError: false })
   initTask = (async () => {
     try {
-      const summaries = await db.loadSessionSummaries()
+      let summaries = await db.loadSessionSummaries()
+      // 首次使用服务端存储时，把浏览器里已有的会话和附件搬上来
+      const migrated = await migrateLegacyHistory(summaries.length > 0)
+      if (migrated) {
+        summaries = migrated
+      }
       if (epoch === historyEpoch) {
         set({ ready: true, sessions: sortSessions(summaries) })
       }

@@ -109,7 +109,8 @@ export const zh = {
   historyImportConfirm: '确认导入',
   historyImportConfirmTitle: '确认导入历史对话？',
   historyImportConfirmDescription: '上传的历史对话会覆盖当前所有对话记录，是否确认导入？',
-  historyImportDescription: '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。',
+  historyImportDescription:
+    '导入历史对话会覆盖全部服务端保存的对话和附件，支持 DeepSeek 导出的 ZIP 文件。',
   historyImportedOne: '已导入 1 个对话',
   historyImported: '已导入 {count} 个对话',
   historyImportFailed:
@@ -117,11 +118,11 @@ export const zh = {
   historyExportFailed: '导出失败：{message}',
   exportAllLabel: '导出所有历史对话',
   historyExportDescription:
-    '包含所有历史对话及本地图片原件；其他附件仅保留文件信息，不包含 API Key。',
+    '包含所有历史对话及服务端保存的图片原件；其他附件仅保留文件信息，不包含 API Key。',
   exportAllDownload: '下载',
   deleteAllSessions: '删除所有对话',
   deleteAllSessionsModalTitle: '删除后，所有对话都将被清空且无法找回',
-  deleteAllSessionsModalDescription: '本地保存的附件及未发送的草稿也将被删除。',
+  deleteAllSessionsModalDescription: '服务端保存的附件及未发送的草稿也将被删除。',
   historyDeleting: '删除中...',
   historyDeleted: '删除成功',
   historyDeleteFailed: '删除失败，请重试',

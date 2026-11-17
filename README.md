@@ -19,13 +19,14 @@ pnpm dev
 
 Open http://localhost:8090.
 
-To build the static site:
+To build and run the app with server-side storage:
 
 ```sh
 pnpm build
+pnpm start
 ```
 
-The output is written to `dist/`. Deploy it to a static web server or open `dist/index.html` directly. Opening the file directly requires browser support for storage on `file://` pages and an API service that permits their cross-origin requests.
+The build output is written to `dist/`; `node server.mjs` serves it and the storage API on port 8090. Conversations are kept in `.chat-demo-data/` next to the project by default; set `CHAT_DEMO_DATA_DIR` to change the location. Serving `dist/` from a static file host no longer persists conversations.
 
 ## Features
 
@@ -37,11 +38,11 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 
 ## Data and storage
 
-Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
+Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored on the server in `.chat-demo-data/` (override with `CHAT_DEMO_DATA_DIR`), so clearing browser storage does not lose them. Every browser that logs in to the same server sees the same conversations. Data stored in the browser before upgrading is migrated to the server automatically on first load. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
 
-History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
+History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all server-side conversations and attachments. Exports include conversations and server-stored original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
 
-Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
+Settings → Data → Delete all chats clears all server-side conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
 
 ## Development
 

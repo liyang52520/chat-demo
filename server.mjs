@@ -6,10 +6,12 @@ import { createServer } from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { createStorageApi } from './server/storage.mjs'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.join(root, 'dist')
 const authDir = path.resolve(process.env.CHAT_DEMO_AUTH_DIR ?? path.join(root, '.chat-demo-auth'))
+const dataDir = path.resolve(process.env.CHAT_DEMO_DATA_DIR ?? path.join(root, '.chat-demo-data'))
 const passwordFile = path.join(authDir, 'password.json')
 const secretFile = path.join(authDir, 'secret')
 
@@ -245,6 +247,8 @@ const loginTemplate = await readFile(path.join(root, 'server', 'login.html'), 'u
 const wordmark = await readFile(path.join(root, 'server', 'wordmark.svg'), 'utf8')
 const loginPage = loginTemplate.replace('<!--WORDMARK-->', wordmark)
 
+const storage = createStorageApi({ dataDir })
+
 const handleAuthApi = async (req, res, pathname) => {
   if (pathname === '/api/auth/status' && req.method === 'GET') {
     const configured = Boolean(envPassword) || Boolean(await loadStoredPassword())
@@ -315,6 +319,18 @@ const handle = async (req, res) => {
     return
   }
 
+  // 会话与附件存在服务端本地；接口只接受已登录的请求，失败时返回 JSON 而不是跳转登录页
+  if (pathname.startsWith('/api/storage/')) {
+    if (!isAuthenticated(req)) {
+      sendJson(res, 401, { error: 'unauthorized' })
+      return
+    }
+    if (!(await storage.handle(req, res, pathname))) {
+      sendJson(res, 404, { error: 'not-found' })
+    }
+    return
+  }
+
   if ((pathname === '/login' || pathname === '/login/') && req.method === 'GET') {
     if (isAuthenticated(req)) {
       redirect(res, '/')
@@ -373,6 +389,7 @@ const server = createServer((req, res) => {
 server.listen(port, host, async () => {
   const stored = await loadStoredPassword()
   console.log(`chat-demo auth server listening on http://${host}:${port}`)
+  console.log(`data: ${dataDir}`)
   console.log(
     envPassword
       ? 'password: from CHAT_DEMO_PASSWORD'

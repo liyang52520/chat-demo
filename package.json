@@ -10,7 +10,7 @@
     "build": "rm -rf dist && NODE_ENV=production rspack build -c rspack.config.ts",
     "start": "node server.mjs",
     "type": "tsc -p tsconfig.json",
-    "lint": "oxlint src rspack.config.ts server.mjs",
+    "lint": "oxlint src rspack.config.ts server.mjs server/storage.mjs",
     "format": "oxfmt --write ."
   },
   "dependencies": {

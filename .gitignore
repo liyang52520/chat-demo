@@ -10,3 +10,4 @@ build/
 !.env.example
 tmp/
 .chat-demo-auth/
+.chat-demo-data*

@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from '@rspack/cli'
 import { rspack, type Configuration } from '@rspack/core'
+import { createStorageApi, STORAGE_PREFIX } from './server/storage.mjs'
 
 const dev = process.env.NODE_ENV !== 'production'
 const targets = ['chrome >= 105', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
@@ -21,6 +23,40 @@ type ConfigOptions = {
   apiOrigin?: string
   /** 开发服务器配置，支持本地接口代理 */
   devServer?: Configuration['devServer']
+}
+
+/** 开发服务器使用与服务端相同的数据目录，开发时也能直接读写真实会话 */
+const devStorage = createStorageApi({ dataDir: path.resolve(root, '.chat-demo-data') })
+
+type RspackDevServer = Exclude<Configuration['devServer'], false | undefined>
+
+/** 开发模式下缺少登录鉴权，其余行为与 node server.mjs 完全一致 */
+const setupStorageMiddleware: NonNullable<RspackDevServer['setupMiddlewares']> = (
+  middlewares,
+  server
+) => {
+  server.app?.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    const pathname = new URL(req.url ?? '/', 'http://localhost').pathname
+    if (!pathname.startsWith(`${STORAGE_PREFIX}/`)) {
+      next()
+      return
+    }
+    void devStorage
+      .handle(req, res, pathname)
+      .then((handled) => {
+        if (!handled) {
+          res.writeHead(404).end()
+        }
+      })
+      .catch((error: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error('[storage]', error)
+        if (!res.headersSent) {
+          res.writeHead(500).end()
+        }
+      })
+  })
+  return middlewares
 }
 
 /** 创建构建配置，支持自定义 API 地址和开发服务器选项 */
@@ -89,7 +125,7 @@ export const createConfig = ({
     }),
   ],
   performance: { hints: false },
-  devServer: { port: 8090, ...devServer },
+  devServer: { port: 8090, setupMiddlewares: setupStorageMiddleware, ...devServer },
 })
 
 // eslint-disable-next-line import/no-default-export

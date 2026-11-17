@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-基于 DeepSeek API 的静态聊天示例。无需应用后端，浏览器直接请求配置的 API 服务。
+基于 DeepSeek API 的聊天示例。回复由浏览器直接请求配置的 API 服务，会话与附件由自带的 Node 服务保存在服务端本地。
 
 点击 [在线体验](https://deepseek-ai.github.io/chat-demo/) 即可使用，也可以前往 [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases) 下载压缩包，解压后双击 `index.html` 在本地使用，无需安装或构建。首次使用时，请在设置中填写 API Key。
 
@@ -19,13 +19,14 @@ pnpm dev
 
 打开 http://localhost:8090 。
 
-生成静态产物：
+构建并启动带服务端存储的应用：
 
 ```sh
 pnpm build
+pnpm start
 ```
 
-产物位于 `dist/`，可部署到静态服务器，也可直接打开 `dist/index.html`。直接打开时，浏览器和 API 服务需允许 `file://` 页面的存储与跨域请求。
+产物位于 `dist/`，`node server.mjs` 会同时提供静态页面和存储接口（默认端口 8090）。会话默认保存在项目下的 `.chat-demo-data/`，可用 `CHAT_DEMO_DATA_DIR` 修改位置。只把 `dist/` 部署到静态服务器时，对话不会持久保存。
 
 ## 功能
 
@@ -37,11 +38,11 @@ pnpm build
 
 ## 数据
 
-API Key 和设置保存在浏览器 localStorage，会话及附件原件保存在 IndexedDB，本地数据按浏览器用户配置和站点源（origin）隔离。发送对话、上传附件和使用语音功能时，相应内容会提交给配置的 API 服务。
+API Key 和设置保存在浏览器 localStorage，会话及附件原件保存在服务端的 `.chat-demo-data/`（可用 `CHAT_DEMO_DATA_DIR` 修改），清理浏览器数据不会丢失。登录同一个服务的浏览器共享同一份对话。升级前存在浏览器里的数据会在首次打开时自动迁移到服务端。发送对话、上传附件和使用语音功能时，相应内容会提交给配置的 API 服务。
 
-设置中的历史导入导出使用 ZIP 格式。导入会在确认并校验成功后替换全部本地会话和附件；导出包含会话与本地可用的图片原件，不包含 API Key、设置或非图片附件原件。格式与保留范围见[历史导入导出](src/services/chat/history/README.md)。
+设置中的历史导入导出使用 ZIP 格式。导入会在确认并校验成功后替换服务端的全部会话和附件；导出包含会话与服务端保存的图片原件，不包含 API Key、设置或非图片附件原件。格式与保留范围见[历史导入导出](src/services/chat/history/README.md)。
 
-设置 → 数据管理 → 删除所有对话，会在确认后清空全部本地会话、附件原件和未发送的草稿，停止正在生成的回复并回到新对话。API Key 和其他设置保留，已上传到 API 服务的文件不受影响。
+设置 → 数据管理 → 删除所有对话，会在确认后清空服务端的全部会话、附件原件和未发送的草稿，停止正在生成的回复并回到新对话。API Key 和其他设置保留，已上传到 API 服务的文件不受影响。
 
 ## 开发
 
