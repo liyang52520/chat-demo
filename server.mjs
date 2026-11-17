@@ -257,7 +257,11 @@ const storage = createStorageApi({ dataDir })
 const handleAuthApi = async (req, res, pathname) => {
   if (pathname === '/api/auth/status' && req.method === 'GET') {
     const configured = Boolean(envPassword) || Boolean(await loadStoredPassword())
-    sendJson(res, 200, { configured, authenticated: isAuthenticated(req) })
+    sendJson(res, 200, {
+      configured,
+      authenticated: isAuthenticated(req),
+      passwordManaged: Boolean(envPassword),
+    })
     return true
   }
 
@@ -309,6 +313,39 @@ const handleAuthApi = async (req, res, pathname) => {
 
   if (pathname === '/api/auth/logout' && req.method === 'POST') {
     res.setHeader('set-cookie', expiredCookie)
+    sendJson(res, 200, { ok: true })
+    return true
+  }
+
+  // 已登录用户修改访问密码；环境变量管理的密码不可在页面内修改
+  if (pathname === '/api/auth/password' && req.method === 'POST') {
+    if (!isAuthenticated(req)) {
+      sendJson(res, 401, { error: 'unauthorized' })
+      return true
+    }
+    if (envPassword) {
+      sendJson(res, 409, { error: 'password-managed' })
+      return true
+    }
+    let body
+    try {
+      body = await readJsonBody(req)
+    } catch {
+      sendJson(res, 400, { error: 'invalid-request' })
+      return true
+    }
+    const currentPassword = typeof body?.currentPassword === 'string' ? body.currentPassword : ''
+    const newPassword = typeof body?.newPassword === 'string' ? body.newPassword : ''
+    if (!newPassword.trim() || newPassword.length > 1024) {
+      sendJson(res, 400, { error: 'invalid-password' })
+      return true
+    }
+    if (!(await verifyPassword(currentPassword))) {
+      sendJson(res, 401, { error: 'invalid-password' })
+      return true
+    }
+    await createStoredPassword(newPassword)
+    res.setHeader('set-cookie', sessionCookie(req, createSession()))
     sendJson(res, 200, { ok: true })
     return true
   }

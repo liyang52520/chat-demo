@@ -65,6 +65,17 @@ export const IconDarkOutline16 = () => (
   </svg>
 )
 
+export const IconUserOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8 1.5C6.20507 1.5 4.75 2.95507 4.75 4.75C4.75 6.54493 6.20507 8 8 8C9.79493 8 11.25 6.54493 11.25 4.75C11.25 2.95507 9.79493 1.5 8 1.5ZM3.25 13.25C3.25 11.276 5.225 9.75 8 9.75C10.775 9.75 12.75 11.276 12.75 13.25C12.75 13.6642 12.4142 14 12 14H4C3.58579 14 3.25 13.6642 3.25 13.25Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
 export const IconDataOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path

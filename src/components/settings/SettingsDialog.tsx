@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
   IconDarkOutline16,
   IconDataOutline16,
@@ -8,6 +8,7 @@ import {
   IconLightOutline16,
   IconSettingsOutline16,
   IconUploadOutline14,
+  IconUserOutline16,
 } from '../base/icons.js'
 import {
   BackupError,
@@ -44,6 +45,7 @@ export const SettingsDialog = () => {
 }
 
 const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode }[] = [
+  { value: 'account', label: 'settingDialogAsideAccountOptionLabel', icon: <IconUserOutline16 /> },
   {
     value: 'general',
     label: 'settingDialogAsideGeneralOptionLabel',
@@ -97,7 +99,7 @@ const SettingsContent = () => {
               <TtsVoiceSetting />
               <LocationSetting />
             </>
-          ) : (
+          ) : section === 'data' ? (
             <>
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
@@ -117,6 +119,8 @@ const SettingsContent = () => {
                 }
               />
             </>
+          ) : (
+            <AccountSetting />
           )}
         </div>
       </Modal>
@@ -197,6 +201,226 @@ const useHistoryDelete = () => {
     },
     confirm,
   }
+}
+
+/** 用户分组：修改访问密码（弹窗内完成）与退出登录 */
+const AccountSetting = () => {
+  const t = useTranslate()
+  const [passwordManaged, setPasswordManaged] = useState(false)
+  const [resetOpened, setResetOpened] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const signingOutRef = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/auth/status', { cache: 'no-store', headers: { accept: 'application/json' } })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((state: { passwordManaged?: boolean } | null) => {
+        if (!cancelled && state?.passwordManaged) {
+          setPasswordManaged(true)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const signOut = async () => {
+    if (signingOutRef.current) {
+      return
+    }
+    signingOutRef.current = true
+    setSigningOut(true)
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { accept: 'application/json' },
+      })
+      if (!response.ok) {
+        throw new Error('logout')
+      }
+      window.location.replace('/login')
+    } catch {
+      signingOutRef.current = false
+      setSigningOut(false)
+      showToast({ key: 'settingsAccountSignOutFailed', type: 'error' })
+    }
+  }
+
+  return (
+    <>
+      <div className={styles.accountPanel}>
+        <SettingCell
+          label={t('settingsAccountResetPassword')}
+          description={t(
+            passwordManaged
+              ? 'settingsAccountResetPasswordManaged'
+              : 'settingsAccountResetPasswordDescription'
+          )}
+          status={null}
+          action={
+            <Button
+              variant="outlined"
+              size="m"
+              className={styles.cellButton}
+              disabled={passwordManaged}
+              onClick={() => setResetOpened(true)}
+            >
+              {t('settingsAccountResetPassword')}
+            </Button>
+          }
+        />
+        <SettingCell
+          label={t('settingsAccountSignOut')}
+          description={t('settingsAccountSignOutDescription')}
+          status={null}
+          action={
+            <Button
+              variant="dangerOutlined"
+              size="m"
+              className={styles.cellButton}
+              disabled={signingOut}
+              onClick={() => void signOut()}
+            >
+              {t(signingOut ? 'settingsAccountSigningOut' : 'settingsAccountSignOut')}
+            </Button>
+          }
+        />
+      </div>
+      {resetOpened && !passwordManaged ? (
+        <ResetPasswordDialog onClose={() => setResetOpened(false)} />
+      ) : null}
+    </>
+  )
+}
+
+/** 重置密码弹窗：校验当前密码与新密码一致性，成功后关闭并提示 */
+const ResetPasswordDialog = ({ onClose }: { onClose: () => void }) => {
+  const t = useTranslate()
+  const formId = useId()
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const busyRef = useRef(false)
+
+  const close = () => {
+    if (!busyRef.current) {
+      onClose()
+    }
+  }
+
+  const canSubmit =
+    Boolean(currentPassword.trim()) &&
+    Boolean(newPassword.trim()) &&
+    Boolean(confirmPassword.trim())
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (busyRef.current || !canSubmit) {
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError(t('settingsAccountPasswordMismatch'))
+      return
+    }
+    busyRef.current = true
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      if (response.ok) {
+        showToast({ key: 'settingsAccountPasswordResetDone' })
+        onClose()
+        return
+      }
+      if (response.status === 401) {
+        setError(t('settingsAccountPasswordInvalid'))
+      } else if (response.status === 409) {
+        setError(t('settingsAccountPasswordManaged'))
+      } else if (response.status === 429) {
+        setError(t('settingsAccountRateLimited'))
+      } else {
+        setError(t('settingsAccountPasswordResetFailed'))
+      }
+    } catch {
+      setError(t('settingsAccountNetworkError'))
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={t('settingsAccountResetPassword')}
+      className={styles.passwordDialog}
+      onClose={close}
+      footer={
+        <div className={styles.passwordActions} aria-busy={busy}>
+          <Button variant="outlined" size="m" disabled={busy} onClick={close}>
+            {t('cancel')}
+          </Button>
+          <Button size="m" type="submit" form={formId} disabled={busy || !canSubmit}>
+            {t(busy ? 'settingsAccountResetting' : 'settingsAccountResetPassword')}
+          </Button>
+        </div>
+      }
+    >
+      <form id={formId} noValidate onSubmit={(event) => void submit(event)}>
+        <p className={styles.passwordIntro}>{t('settingsAccountResetPasswordIntro')}</p>
+        <label className={styles.passwordField}>
+          <span>{t('settingsAccountCurrentPassword')}</span>
+          <input
+            type="password"
+            autoComplete="current-password"
+            autoFocus
+            value={currentPassword}
+            placeholder={t('settingsAccountCurrentPasswordPlaceholder')}
+            onChange={(event) => {
+              setCurrentPassword(event.target.value)
+              setError('')
+            }}
+          />
+        </label>
+        <label className={styles.passwordField}>
+          <span>{t('settingsAccountNewPassword')}</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={newPassword}
+            placeholder={t('settingsAccountNewPasswordPlaceholder')}
+            onChange={(event) => {
+              setNewPassword(event.target.value)
+              setError('')
+            }}
+          />
+        </label>
+        <label className={styles.passwordField}>
+          <span>{t('settingsAccountConfirmPassword')}</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            placeholder={t('settingsAccountConfirmPasswordPlaceholder')}
+            onChange={(event) => {
+              setConfirmPassword(event.target.value)
+              setError('')
+            }}
+          />
+        </label>
+        <div className={styles.passwordError} role="alert">
+          {error}
+        </div>
+      </form>
+    </Modal>
+  )
 }
 
 const LocationSetting = () => {

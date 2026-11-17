@@ -90,6 +90,13 @@
   gap: 8px;
 }
 
+.accountPanel {
+  flex-shrink: 0;
+  padding: 0 16px;
+  border-radius: 16px;
+  background-color: var(--dsw-specific-selector);
+}
+
 .text {
   display: flex;
   flex: 1 0 0;
@@ -285,6 +292,88 @@
 .importConfirm {
   padding-top: 26px;
   padding-bottom: 24px;
+}
+
+.passwordDialog {
+  padding-top: 24px;
+  padding-bottom: 22px;
+}
+
+.passwordIntro {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.passwordField {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.passwordField > span {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.passwordField input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  outline: none;
+  background-color: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+  caret-color: var(--dsw-alias-brand-text);
+  transition:
+    border-color var(--ds-transition-duration) var(--ds-ease-in-out),
+    box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+.passwordField input::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+.passwordField input:focus {
+  border-color: var(--dsw-alias-brand-primary);
+  box-shadow: 0 0 0 3px var(--dsw-alias-button-ghost-active-fill);
+}
+
+.passwordError {
+  min-height: 18px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.passwordActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+@media not all and (min-width: 768px) {
+  .accountPanel {
+    padding: 0 14px;
+  }
+
+  .passwordField input {
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .passwordActions > button {
+    flex: 1;
+    min-height: 44px;
+  }
 }
 
 .importConfirmText {
