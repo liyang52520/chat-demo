@@ -19,7 +19,7 @@ const cssLoader = {
 }
 
 type ConfigOptions = {
-  /** 公开 API 的地址，注入为 __API_ORIGIN__ */
+  /** 上游 API 地址，开发服务器把 /api/proxy 转发到这里 */
   apiOrigin?: string
   /** 开发服务器配置，支持本地接口代理 */
   devServer?: Configuration['devServer']
@@ -29,6 +29,9 @@ type ConfigOptions = {
 const devStorage = createStorageApi({ dataDir: path.resolve(root, '.chat-demo-data') })
 
 type RspackDevServer = Exclude<Configuration['devServer'], false | undefined>
+
+/** 开发服务器代理上游时注入的 API Key */
+const devApiKey = process.env.CHAT_DEMO_API_KEY?.trim() ?? ''
 
 /** 开发模式下缺少登录鉴权，其余行为与 node server.mjs 完全一致 */
 const setupStorageMiddleware: NonNullable<RspackDevServer['setupMiddlewares']> = (
@@ -61,7 +64,7 @@ const setupStorageMiddleware: NonNullable<RspackDevServer['setupMiddlewares']> =
 
 /** 创建构建配置，支持自定义 API 地址和开发服务器选项 */
 export const createConfig = ({
-  apiOrigin = 'https://api.deepseek.com',
+  apiOrigin = process.env.CHAT_DEMO_API_ORIGIN?.trim() || 'https://api.deepseek.com',
   devServer,
 }: ConfigOptions = {}): Configuration => ({
   mode: dev ? 'development' : 'production',
@@ -116,7 +119,6 @@ export const createConfig = ({
       scriptLoading: 'defer',
       meta: { 'application-version': version },
     }),
-    new rspack.DefinePlugin({ __API_ORIGIN__: JSON.stringify(apiOrigin) }),
     new rspack.CopyRspackPlugin({
       patterns: [
         { from: path.resolve(root, 'LICENSE'), to: 'LICENSE', toType: 'file' },
@@ -125,7 +127,23 @@ export const createConfig = ({
     }),
   ],
   performance: { hints: false },
-  devServer: { port: 8090, setupMiddlewares: setupStorageMiddleware, ...devServer },
+  devServer: {
+    port: 8090,
+    setupMiddlewares: setupStorageMiddleware,
+    // 与 node server.mjs 的 /api/proxy 行为一致：转发到上游并注入环境变量里的 API Key
+    proxy: [
+      {
+        context: ['/api/proxy'],
+        target: apiOrigin,
+        changeOrigin: true,
+        pathRewrite: { '^/api/proxy': '' },
+        headers: devApiKey
+          ? { 'x-api-key': devApiKey, authorization: `Bearer ${devApiKey}` }
+          : {},
+      },
+    ],
+    ...devServer,
+  },
 })
 
 // eslint-disable-next-line import/no-default-export

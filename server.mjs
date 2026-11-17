@@ -2,7 +2,8 @@
 import { createHash, createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:http'
+import { createServer, request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -19,6 +20,10 @@ const port = Number(process.env.PORT ?? 8090)
 const host = process.env.CHAT_DEMO_HOST ?? '0.0.0.0'
 /** 环境变量密码优先；为空时使用首次进入时设置并保存在服务端的密码 */
 const envPassword = process.env.CHAT_DEMO_PASSWORD?.trim() ?? ''
+/** API Key 只保存在服务端环境变量里，由 /api/proxy 注入上游请求，浏览器始终拿不到 */
+const envApiKey = process.env.CHAT_DEMO_API_KEY?.trim() ?? ''
+/** 上游 API 服务，可换成其他兼容服务 */
+const apiOrigin = new URL(process.env.CHAT_DEMO_API_ORIGIN?.trim() || 'https://api.deepseek.com')
 
 const COOKIE = 'chat_demo_session'
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60
@@ -311,11 +316,90 @@ const handleAuthApi = async (req, res, pathname) => {
   return false
 }
 
+/** 代理只放行聊天、附件与语音实际用到的接口 */
+const PROXY_ALLOWED_PATHS = [/^\/models$/, /^\/anthropic\/v1\//, /^\/v1\/tools\//]
+
+/** 逐跳头由本机连接自己维护，不能透传 */
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+])
+
+const forwardableHeaders = (headers) =>
+  Object.fromEntries(
+    Object.entries(headers).filter(
+      ([name, value]) => value !== undefined && !HOP_BY_HOP_HEADERS.has(name)
+    )
+  )
+
+/**
+ * 把登录后的请求流式转发到上游 API，并注入环境变量里的 API Key。
+ * 请求体（附件上传）与响应体（SSE、音频流）都直接管道转发，不做缓冲。
+ */
+const proxyApi = (req, res, pathname, search) => {
+  if (!envApiKey) {
+    sendJson(res, 503, { error: { message: 'API key is not configured on the server' } })
+    return
+  }
+  if (!PROXY_ALLOWED_PATHS.some((pattern) => pattern.test(pathname))) {
+    sendJson(res, 404, { error: { message: 'not-found' } })
+    return
+  }
+  const headers = forwardableHeaders(req.headers)
+  delete headers.host
+  delete headers.cookie
+  headers['x-api-key'] = envApiKey
+  headers.authorization = `Bearer ${envApiKey}`
+
+  const upstream = (apiOrigin.protocol === 'https:' ? httpsRequest : httpRequest)(
+    {
+      protocol: apiOrigin.protocol,
+      hostname: apiOrigin.hostname,
+      port: apiOrigin.port || undefined,
+      path: `${pathname}${search}`,
+      method: req.method,
+      headers,
+    },
+    (upstreamRes) => {
+      const responseHeaders = forwardableHeaders(upstreamRes.headers)
+      delete responseHeaders['set-cookie']
+      res.writeHead(upstreamRes.statusCode ?? 502, responseHeaders)
+      upstreamRes.pipe(res)
+    }
+  )
+  upstream.on('error', () => {
+    if (!res.headersSent) {
+      sendJson(res, 502, { error: { message: 'upstream-error' } })
+    } else {
+      res.end()
+    }
+  })
+  // 浏览器停止生成或断线时一并断开上游，避免继续计费
+  res.on('close', () => upstream.destroy())
+  req.pipe(upstream)
+}
+
 const handle = async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost')
   const pathname = url.pathname
 
   if (await handleAuthApi(req, res, pathname)) {
+    return
+  }
+
+  // 浏览器只访问同源代理；API Key 由服务端注入上游请求，客户端拿不到
+  if (pathname === '/api/proxy' || pathname.startsWith('/api/proxy/')) {
+    if (!isAuthenticated(req)) {
+      sendJson(res, 401, { error: 'unauthorized' })
+      return
+    }
+    proxyApi(req, res, pathname.slice('/api/proxy'.length) || '/', url.search)
     return
   }
 
@@ -390,6 +474,10 @@ server.listen(port, host, async () => {
   const stored = await loadStoredPassword()
   console.log(`chat-demo auth server listening on http://${host}:${port}`)
   console.log(`data: ${dataDir}`)
+  console.log(`api: ${apiOrigin.origin}`)
+  console.log(
+    envApiKey ? 'api key: from CHAT_DEMO_API_KEY' : 'api key: not set — chat requests will fail'
+  )
   console.log(
     envPassword
       ? 'password: from CHAT_DEMO_PASSWORD'
