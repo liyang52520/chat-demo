@@ -1,8 +1,8 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches: [main]
+  # GitHub Pages 为纯静态托管，无法运行 server.mjs 的登录服务，部署后的站点没有访问密码。
+  # 需要密码保护时，请构建后使用 `pnpm start` 部署到支持 Node 的环境。
   workflow_dispatch:
 
 permissions:

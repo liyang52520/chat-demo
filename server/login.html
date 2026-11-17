@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>登录</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      try {
+        var preference = localStorage.getItem('chat-demo:theme-preference')
+        var dark =
+          preference === 'dark' ||
+          (preference !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch (error) {}
+    </script>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --label-primary: #0f1115;
+        --label-tertiary: #81858c;
+        --label-caption: #adb2b8;
+        --input-bg: #f9fafb;
+        --brand: #3964fe;
+        --brand-hover: #5686fe;
+        --danger: #ec1313;
+        --ease: cubic-bezier(0.4, 0, 0.2, 1);
+        color-scheme: light;
+      }
+
+      html[data-theme='dark'] {
+        --bg: #151517;
+        --label-primary: #f9fafb;
+        --label-tertiary: #adb2b8;
+        --label-caption: #81858c;
+        --input-bg: #1b1b1c;
+        --brand: #5686fe;
+        --brand-hover: #3964fe;
+        --danger: #f25a5a;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      body {
+        display: flex;
+        min-height: 100vh;
+        min-height: 100dvh;
+        background-color: var(--bg);
+        color: var(--label-primary);
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+          'Microsoft YaHei', sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .page {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 384px;
+        margin: auto;
+        padding: 48px 24px;
+      }
+
+      .brand {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 36px;
+      }
+
+      .brand svg {
+        display: block;
+        width: auto;
+        height: 30px;
+      }
+
+      .brand svg path {
+        fill: var(--brand);
+      }
+
+      .title {
+        margin: 0 0 8px;
+        font-size: 24px;
+        line-height: 32px;
+        font-weight: 600;
+        text-align: center;
+        color: var(--label-primary);
+      }
+
+      .subtitle {
+        margin: 0 0 32px;
+        font-size: 14px;
+        line-height: 22px;
+        text-align: center;
+        color: var(--label-tertiary);
+      }
+
+      .field {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        padding: 0 16px;
+        margin-bottom: 12px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        background-color: var(--input-bg);
+        transition:
+          border-color 0.2s var(--ease),
+          background-color 0.2s var(--ease);
+      }
+
+      .field:focus-within {
+        border-color: var(--brand);
+        background-color: var(--bg);
+      }
+
+      .field.invalid {
+        border-color: var(--danger);
+      }
+
+      .field input {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--label-primary);
+        font: inherit;
+        font-size: 15px;
+        caret-color: var(--brand);
+      }
+
+      .field input::placeholder {
+        color: var(--label-caption);
+      }
+
+      .error {
+        min-height: 20px;
+        margin: 6px 2px 10px;
+        font-size: 12px;
+        line-height: 20px;
+        color: var(--danger);
+      }
+
+      .submit {
+        width: 100%;
+        height: 40px;
+        padding: 0 16px;
+        border: none;
+        border-radius: 999px;
+        background-color: var(--brand);
+        color: #ffffff;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          background-color 0.2s var(--ease),
+          opacity 0.2s var(--ease);
+      }
+
+      .submit:hover:not(:disabled) {
+        background-color: var(--brand-hover);
+      }
+
+      .submit:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .submit:focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 767px) {
+        .page {
+          padding: 40px 24px calc(24px + env(safe-area-inset-bottom));
+        }
+
+        .brand {
+          margin-bottom: 28px;
+        }
+
+        .brand svg {
+          height: 26px;
+        }
+
+        .title {
+          font-size: 22px;
+          line-height: 30px;
+        }
+
+        .subtitle {
+          margin-bottom: 24px;
+        }
+
+        .field input {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="brand" aria-hidden="true"><!--WORDMARK--></div>
+      <div id="panel" hidden>
+        <h1 class="title" id="title">登录</h1>
+        <p class="subtitle" id="subtitle">请输入访问密码以继续</p>
+        <form id="form" novalidate>
+          <div class="field" id="passwordField">
+            <input
+              id="password"
+              type="password"
+              autocomplete="current-password"
+              spellcheck="false"
+              placeholder="请输入密码"
+              aria-label="请输入密码"
+            />
+          </div>
+          <div class="field" id="confirmField" hidden>
+            <input
+              id="confirm"
+              type="password"
+              autocomplete="new-password"
+              spellcheck="false"
+              placeholder="请再次输入密码"
+              aria-label="请再次输入密码"
+            />
+          </div>
+          <div class="error" id="error" role="alert"></div>
+          <button class="submit" id="submit" type="submit" disabled>登录</button>
+        </form>
+      </div>
+    </main>
+    <script>
+      const messages = {
+        'zh-CN': {
+          documentTitle: '登录',
+          title: '登录',
+          subtitle: '请输入访问密码以继续',
+          password: '请输入密码',
+          confirm: '请再次输入密码',
+          button: '登录',
+          setupTitle: '设置访问密码',
+          setupSubtitle: '首次使用，请设置访问密码',
+          setupButton: '进入系统',
+          mismatch: '两次输入的密码不一致',
+          invalid: '密码错误，请重新输入',
+          rateLimited: '尝试次数过多，请稍后再试',
+          network: '网络异常，请稍后重试',
+          setupFailed: '设置失败，请重试',
+          working: '处理中…',
+        },
+        'en-US': {
+          documentTitle: 'Sign in',
+          title: 'Sign in',
+          subtitle: 'Enter the access password to continue',
+          password: 'Enter password',
+          confirm: 'Confirm password',
+          button: 'Sign in',
+          setupTitle: 'Set an access password',
+          setupSubtitle: 'First time here — create an access password',
+          setupButton: 'Continue',
+          mismatch: 'Passwords do not match',
+          invalid: 'Incorrect password. Please try again.',
+          rateLimited: 'Too many attempts. Please try again later.',
+          network: 'Network error. Please try again.',
+          setupFailed: 'Setup failed. Please try again.',
+          working: 'Working…',
+        },
+      }
+
+      let locale = 'zh-CN'
+      try {
+        locale = localStorage.getItem('chat-demo:locale') || navigator.language || 'zh-CN'
+      } catch (error) {
+        locale = navigator.language || 'zh-CN'
+      }
+      const text = locale.toLowerCase().startsWith('zh') ? messages['zh-CN'] : messages['en-US']
+
+      const panel = document.getElementById('panel')
+      const form = document.getElementById('form')
+      const title = document.getElementById('title')
+      const subtitle = document.getElementById('subtitle')
+      const passwordField = document.getElementById('passwordField')
+      const confirmField = document.getElementById('confirmField')
+      const password = document.getElementById('password')
+      const confirm = document.getElementById('confirm')
+      const error = document.getElementById('error')
+      const submit = document.getElementById('submit')
+
+      let configured = true
+      let submitting = false
+
+      const updateSubmit = () => {
+        submit.disabled =
+          submitting || !password.value.trim() || (!configured && !confirm.value.trim())
+      }
+
+      const setError = (message, fields = [passwordField]) => {
+        error.textContent = message
+        for (const field of [passwordField, confirmField]) {
+          const invalid = Boolean(message) && fields.includes(field)
+          field.classList.toggle('invalid', invalid)
+          field.querySelector('input').setAttribute('aria-invalid', invalid ? 'true' : 'false')
+        }
+      }
+
+      const applyMode = () => {
+        document.documentElement.lang = text === messages['zh-CN'] ? 'zh-CN' : 'en-US'
+        document.title = text.documentTitle
+        title.textContent = configured ? text.title : text.setupTitle
+        subtitle.textContent = configured ? text.subtitle : text.setupSubtitle
+        confirmField.hidden = configured
+        password.placeholder = text.password
+        password.setAttribute('aria-label', text.password)
+        confirm.placeholder = text.confirm
+        confirm.setAttribute('aria-label', text.confirm)
+        password.autocomplete = configured ? 'current-password' : 'new-password'
+        submit.textContent = configured ? text.button : text.setupButton
+        updateSubmit()
+      }
+
+      const showPanel = () => {
+        panel.hidden = false
+        password.focus()
+      }
+
+      const refresh = async () => {
+        try {
+          const response = await fetch('/api/auth/status', {
+            cache: 'no-store',
+            headers: { accept: 'application/json' },
+          })
+          if (!response.ok) {
+            throw new Error('status')
+          }
+          const state = await response.json()
+          if (state.authenticated) {
+            location.replace('/')
+            return
+          }
+          configured = state.configured !== false
+          applyMode()
+          showPanel()
+        } catch {
+          configured = true
+          applyMode()
+          showPanel()
+          setError(text.network, [])
+        }
+      }
+
+      password.addEventListener('input', () => {
+        setError('', [])
+        updateSubmit()
+      })
+      confirm.addEventListener('input', () => {
+        setError('', [])
+        updateSubmit()
+      })
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        if (submitting || !password.value.trim()) {
+          return
+        }
+        if (!configured) {
+          if (!confirm.value.trim()) {
+            return
+          }
+          if (password.value !== confirm.value) {
+            setError(text.mismatch, [passwordField, confirmField])
+            confirm.focus()
+            return
+          }
+        }
+
+        submitting = true
+        submit.textContent = text.working
+        updateSubmit()
+        try {
+          const response = await fetch(configured ? '/api/auth/login' : '/api/auth/setup', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', accept: 'application/json' },
+            body: JSON.stringify({ password: password.value }),
+          })
+          if (response.ok) {
+            location.replace('/')
+            return
+          }
+          if (response.status === 409) {
+            await refresh()
+          } else if (response.status === 429) {
+            setError(text.rateLimited, [])
+          } else if (response.status === 401) {
+            setError(text.invalid)
+            password.select()
+          } else {
+            setError(configured ? text.invalid : text.setupFailed)
+          }
+        } catch {
+          setError(text.network, [])
+        } finally {
+          submitting = false
+          submit.textContent = configured ? text.button : text.setupButton
+          updateSubmit()
+        }
+      })
+
+      refresh()
+    </script>
+  </body>
+</html>
